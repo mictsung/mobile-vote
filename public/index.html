@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>手機投票地圖</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyZWpB2QQKk-yuvOjzMFBtOAHCFwr2HiY"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="top-bar">
+        <div>
+          <div class="event-heading">
+            <p id="eventTitle" class="event-title">載入中...</p>
+            <p id="eventMeta" class="event-meta">載入中...</p>
+          </div>
+          <h1 id="appTitle">手機地圖投票系統</h1>
+          <p id="appDescription">歡迎參與投票活動！</p>
+        </div>
+      </header>
+
+      <section class="voting-tabs-row">
+        <h2 class="voting-tabs-title">目前進行中的投票</h2>
+        <div id="votingEventTabs" class="voting-event-tabs"></div>
+      </section>
+
+      <section class="card live-results-card" aria-live="polite">
+        <div class="card-header">
+          <h2>即時投票結果</h2>
+        </div>
+        <div id="liveResultsContent" class="live-results-content">
+          <p class="live-results-loading">載入中…</p>
+        </div>
+      </section>
+
+      <section class="card vote-card">
+        <div class="card-header">
+          <h2>立即投票</h2>
+          <span class="note">輸入暱稱後，選擇一個地點並按下投票。</span>
+        </div>
+
+        <div class="current-voting-info" id="currentVotingInfo">
+          <p>正在載入本次投票活動詳情...</p>
+        </div>
+
+        <div class="vote-panel">
+          <label class="field-label">
+            我的名字
+            <input id="userName" type="text" placeholder="輸入您的名字" maxlength="30" />
+          </label>
+          <label class="field-label">
+            遊戲 ID
+            <input id="gameId" type="text" placeholder="輸入遊戲ID（英數）" maxlength="50" />
+          </label>
+          <div class="field-label">
+            我從哪裡來
+            <div class="origin-selects">
+              <select id="originCounty" aria-label="縣市"></select>
+              <select id="originDistrict" aria-label="行政區"></select>
+            </div>
+            <span class="field-hint">若選國外則行政區免填。</span>
+          </label>
+        </div>
+
+        <div class="inline-map-card">
+          <p id="selectedLocationLabel" class="selected-label">請選擇一個地點&獎勵條件</p>
+          <div id="map"></div>
+          <p class="map-tip">可直接點地圖黃色標示來選擇地點</p>
+        </div>
+
+        <div class="group-header">
+          <h3>我想在哪裡辦</h3>
+        </div>
+        <div class="options-list" id="optionsList"></div>
+
+        <div class="options-group">
+          <div class="group-header">
+            <h3>可領取獎勵條件</h3>
+            <p class="note">請選擇一個條件，再按下投票。</p>
+          </div>
+          <div class="options-list reward-options-list" id="rewardOptionsList"></div>
+        </div>
+
+        <div class="award-feedback-block">
+          <div class="group-header">
+            <h3>我覺得有更棒的獎勵方式[選填]</h3>
+            <p class="note">我想提供其他一些想法</p>
+          </div>
+          <textarea
+            id="awardFeedback"
+            class="feedback-input"
+            maxlength="50"
+            placeholder="最多 50 字，選填"
+          ></textarea>
+        </div>
+
+        <button id="voteBtn" class="primary-btn" disabled>投票</button>
+      </section>
+
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

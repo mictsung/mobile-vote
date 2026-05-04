@@ -1,0 +1,16 @@
+Realtime voting server running on http://localhost:3001
+🔄 初始化資料庫連線...
+✅ 活動資料載入完成
+✅ 地點資料載入完成
+✅ 獎勵條件載入完成
+✅ 見面會資料載入完成
+Event save request: {
+  eventId: 'event_test',
+  name: 'test',
+  type: 'festival',
+  date: '2026-05-01',
+  time: '10:00:00',
+  votingDue: '2026-05-02T23:59',
+  selectedLocations: [ 'loc_001', 'loc_002', 'loc_003' ],
+  selectedAwards: [ 'award_001', 'award_002', 'award_003' ]
+}

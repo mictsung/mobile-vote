@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>後台管理 - 投票地圖</title>
+    <link rel="stylesheet" href="admin.css" />
+    <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDyZWpB2QQKk-yuvOjzMFBtOAHCFwr2HiY"></script>
+  </head>
+  <body>
+    <!-- 登入畫面 -->
+    <div id="loginScreen" class="auth-container">
+      <div class="auth-card">
+        <h1>後台管理系統</h1>
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="username">帳號（Email）</label>
+            <input
+              id="username"
+              type="email"
+              placeholder="輸入登入 Email"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="password">密碼</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="輸入密碼"
+              required
+            />
+          </div>
+          <button type="submit" class="btn-primary">登入</button>
+          <div id="loginError" class="error-msg"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 管理後台畫面 -->
+    <div id="adminPanel" class="admin-container" style="display: none">
+      <header class="admin-header">
+        <h1>⚙️ 投票系統管理後台</h1>
+        <button id="logoutBtn" class="btn-logout">🚪 登出</button>
+      </header>
+
+      <main class="admin-main">
+        <div class="tabs-container">
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="events">📅 活動管理</button>
+            <button class="tab-btn" data-tab="locations">📍 地點管理</button>
+            <button class="tab-btn" data-tab="stats">📊 投票統計</button>
+            <button class="tab-btn" data-tab="records">🧾 投票紀錄</button>
+          </div>
+
+          <!-- 活動管理標籤頁 -->
+          <div id="events" class="tab-content" style="display: block">
+            <div class="section-header">
+              <h2>活動管理</h2>
+              <button id="addEventBtn" class="btn-primary">➕ 新增活動</button>
+            </div>
+
+            <!-- 活動編輯表單 -->
+            <div id="eventForm" class="form-container" style="display: none">
+              <h3 id="eventFormTitle">新增活動</h3>
+              <form id="eventEditForm">
+                <input type="hidden" id="eventId" />
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="eventName">活動名稱</label>
+                    <input type="text" id="eventName" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="eventType">活動類型</label>
+                    <select id="eventType">
+                      <option value="meetup">見面會</option>
+                      <option value="festival">音樂節</option>
+                      <option value="conference">會議</option>
+                      <option value="other">其他</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="locationSelect1">投票地點 1</label>
+                    <select id="locationSelect1" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="locationSelect2">投票地點 2</label>
+                    <select id="locationSelect2" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="locationSelect3">投票地點 3</label>
+                    <select id="locationSelect3" required></select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="awardSelect1">獎勵條件 1</label>
+                    <select id="awardSelect1" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="awardSelect2">獎勵條件 2</label>
+                    <select id="awardSelect2" required></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="awardSelect3">獎勵條件 3</label>
+                    <select id="awardSelect3" required></select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="eventDate">活動日期</label>
+                    <input type="date" id="eventDate" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="eventTime">活動時間</label>
+                    <input type="time" id="eventTime" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="votingDue">投票截止時間</label>
+                    <input type="datetime-local" id="votingDue" required />
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary">儲存</button>
+                  <button type="button" id="cancelEventBtn" class="btn-secondary">取消</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="eventsList" class="events-list">
+              <!-- 活動列表將動態生成 -->
+            </div>
+          </div>
+
+          <!-- 地點管理標籤頁 -->
+          <div id="locations" class="tab-content" style="display: none">
+            <div class="section-header">
+              <h2>地點管理</h2>
+              <button id="addLocationBtn" class="btn-primary">➕ 新增地點</button>
+            </div>
+
+            <!-- 地點編輯表單 -->
+            <div id="locationForm" class="form-container" style="display: none">
+              <h3 id="locationFormTitle">新增地點</h3>
+              <form id="locationEditForm">
+                <input type="hidden" id="locationId" />
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="locationName">地點名稱</label>
+                    <input type="text" id="locationName" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="locationType">地點類型</label>
+                    <select id="locationType"></select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="latitude">緯度</label>
+                    <input type="number" id="latitude" step="0.000001" required />
+                  </div>
+                  <div class="form-group">
+                    <label for="longitude">經度</label>
+                    <input type="number" id="longitude" step="0.000001" required />
+                  </div>
+                </div>
+
+                <div class="map-preview">
+                  <div id="locationMap" style="height: 300px; width: 100%;"></div>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn-primary">儲存</button>
+                  <button type="button" id="cancelLocationBtn" class="btn-secondary">取消</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="locationsList" class="locations-list">
+              <!-- 地點列表將動態生成 -->
+            </div>
+          </div>
+
+          <!-- 投票統計標籤頁 -->
+          <div id="stats" class="tab-content" style="display: none">
+            <div class="section-header">
+              <h2>投票統計</h2>
+              <button id="refreshStatsBtn" class="btn-secondary">🔄 重新整理</button>
+            </div>
+
+            <div id="statsContainer" class="stats-container">
+              <!-- 統計資料將動態生成 -->
+            </div>
+          </div>
+
+          <!-- 投票紀錄標籤頁 -->
+          <div id="records" class="tab-content" style="display: none">
+            <div class="section-header">
+              <h2>投票紀錄</h2>
+              <button id="refreshRecordsBtn" class="btn-secondary">🔄 重新整理</button>
+            </div>
+            <div id="voteRecordsContainer" class="vote-records-container">
+              <!-- 投票紀錄將動態生成 -->
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="admin-footer">
+        <a href="/" target="_blank" class="btn-view">📖 查看投票頁面</a>
+      </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+⚠️ 基礎資料表為空，使用預設值
+❌ 更新活動資料失敗: {
+  code: '42501',
+  details: null,
+  hint: null,
+  message: 'new row violates row-level security policy for table "event_main"'
+}
+Event update failed
