@@ -623,65 +623,67 @@ async function upsertUserInfo(userName, userGameId, city, location) {
   }
 }
 
-async function getNextAwardFeedbackId() {
-  try {
-    const { data, error } = await supabase
-      .from('award_feedback')
-      .select('id')
-      .order('id', { ascending: false })
-      .limit(1);
-
-    if (error || !data || data.length === 0) {
-      return 1;
-    }
-
-    const lastRaw = String(data[0].id ?? '').trim();
-    const lastNumber = parseInt(lastRaw.replace(/\D+/g, ''), 10);
-    return Number.isNaN(lastNumber) ? 1 : lastNumber + 1;
-  } catch (error) {
-    console.error('⚠️ 取得 award_feedback id 失敗（不影響投票）:', error);
-    return 1;
-  }
-}
-
 async function addAwardFeedbackToDB(userName, userGameId, feedbackAward, city, location) {
   const safeFeedback = sanitizeBasicText(feedbackAward, 50);
   if (!safeFeedback) return;
 
   try {
-    const nextId = await getNextAwardFeedbackId();
+    const getNextFeedbackId = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('award_feedback')
+          .select('feedback_id')
+          .order('feedback_id', { ascending: false })
+          .limit(1);
+        if (error || !data || data.length === 0) return 1;
+        const raw = String(data[0].feedback_id ?? '').trim();
+        const n = parseInt(raw.replace(/\D+/g, ''), 10);
+        return Number.isNaN(n) ? 1 : n + 1;
+      } catch (e) {
+        console.warn('⚠️ 取得 feedback_id 失敗，改用 1:', e?.message || e);
+        return 1;
+      }
+    };
+
+    const safeUserName = sanitizeBasicText(userName, 30);
+    const safeGameId = sanitizeBasicText(userGameId, 50);
+    const safeCity = sanitizeBasicText(city, 20);
+    const safeLocation = sanitizeBasicText(location, 30);
     const nowIso = new Date().toISOString();
-    const payload = {
-      id: nextId,
-      user_name: userName,
-      user_id: userGameId,
-      feedback_award: safeFeedback,
-      date: nowIso,
-      status: 'normal',
-      city,
-      location
-    };
+    const nextFeedbackId = await getNextFeedbackId();
+    const payloadCandidates = [
+      {
+        feedback_id: nextFeedbackId,
+        feedback_award: safeFeedback,
+        feedback_user_id: safeGameId,
+        feedback_user_name: safeUserName,
+        city: safeCity,
+        location: safeLocation,
+        feedback_date: nowIso
+      },
+      {
+        feedback_id: String(nextFeedbackId),
+        feedback_award: safeFeedback,
+        feedback_user_id: safeGameId,
+        feedback_user_name: safeUserName,
+        city: safeCity,
+        location: safeLocation,
+        feedback_date: nowIso.slice(0, 10),
+      }
+    ];
 
-    const { error } = await supabase
-      .from('award_feedback')
-      .insert(payload);
+    let lastError = null;
+    for (const payload of payloadCandidates) {
+      const { error } = await supabase.from('award_feedback').insert(payload);
+      if (!error) {
+        return;
+      }
+      lastError = error;
+      console.warn('⚠️ award_feedback 嘗試寫入失敗，改用下一組欄位:', error.message || error);
+    }
 
-    if (!error) return;
-
-    // 相容舊欄位命名，避免既有資料庫結構造成投票流程中斷
-    const legacyPayload = {
-      feedback_id: String(nextId),
-      feedback_user: userName,
-      feedback_award: safeFeedback,
-      feedback_date: nowIso.slice(0, 10),
-      feedback_status: 'normal'
-    };
-    const { error: legacyError } = await supabase
-      .from('award_feedback')
-      .insert(legacyPayload);
-
-    if (legacyError) {
-      console.error('⚠️ 新增 award_feedback 失敗（不影響投票）:', legacyError);
+    if (lastError) {
+      console.error('⚠️ 新增 award_feedback 最終失敗（不影響投票）:', lastError);
     }
   } catch (error) {
     console.error('⚠️ 新增 award_feedback 例外（不影響投票）:', error);
