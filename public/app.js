@@ -309,7 +309,6 @@ function renderActiveVotingInfo() {
 
 // 渲染地點選項
 function renderOptions() {
-  const currentStats = getSelectedVoteStats();
   const locationArray = getVisibleLocations();
   optionsList.innerHTML = locationArray
     .map((location) => {
@@ -325,7 +324,7 @@ function renderOptions() {
     .join('');
 
   // 綁定點擊事件
-  document.querySelectorAll('.option-item').forEach((btn) => {
+  optionsList.querySelectorAll('.option-item').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const locationId = e.currentTarget.dataset.location;
       selectLocation(locationId);
@@ -356,7 +355,7 @@ function renderRewardOptions() {
     })
     .join('');
 
-  document.querySelectorAll('.reward-option-item').forEach((btn) => {
+  rewardOptionsList.querySelectorAll('.reward-option-item').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       const awardId = e.currentTarget.dataset.award;
       selectAward(awardId);
@@ -366,8 +365,16 @@ function renderRewardOptions() {
 
 // 選擇地點
 function selectLocation(locationId) {
+  if (!locationId) {
+    selectedLocationId = null;
+    selectedLocationLabel.textContent = '請先選擇一個投票項目';
+    updateVoteState();
+    return;
+  }
+
   selectedLocationId = String(locationId);
-  const location = appData.locations[selectedLocationId] || appData.activeVotingEvent?.locations?.find((item) => String(item.id) === selectedLocationId);
+  const location = appData.locations[selectedLocationId]
+    || getSelectedVotingEvent()?.locations?.find((item) => String(item.id) === selectedLocationId);
 
   // 更新UI
   document.querySelectorAll('.option-item').forEach((btn) => {
@@ -376,13 +383,17 @@ function selectLocation(locationId) {
     }
   });
 
-  // 更新地圖
-  updateMapSelection(selectedLocationId);
-
   // 更新選擇標籤
   selectedLocationLabel.textContent = location ? `已選擇: ${location.name}` : '請先選擇一個投票項目';
 
   updateVoteState();
+
+  // 地圖更新失敗不應阻斷投票按鈕狀態更新
+  try {
+    updateMapSelection(selectedLocationId);
+  } catch (error) {
+    console.warn('更新地圖選擇時發生錯誤:', error);
+  }
 }
 
 function selectAward(awardId) {
@@ -393,7 +404,9 @@ function selectAward(awardId) {
     btn.classList.toggle('selected', btn.dataset.award === awardId);
   });
 
-  selectedAwardLabel.textContent = award ? `已選擇獎勵條件: ${award.description}` : '請先選擇一個獎勵條件';
+  if (selectedAwardLabel) {
+    selectedAwardLabel.textContent = award ? `已選擇獎勵條件: ${award.description}` : '請先選擇一個獎勵條件';
+  }
 
   updateVoteState();
 }
@@ -579,6 +592,7 @@ function updateAppData(newData) {
   renderOptions();
   renderRewardOptions();
   updateMapMarkers();
+  updateVoteState();
 }
 
 // 投票功能
@@ -661,6 +675,7 @@ socket.on('vote-stats-update', (payload) => {
   }
   renderLiveResults();
   renderOptions(); // 重新渲染以顯示最新票數
+  updateVoteState();
 });
 
 socket.on('vote-success', (data) => {
